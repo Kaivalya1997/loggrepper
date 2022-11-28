@@ -23,6 +23,9 @@ func PopulateStructsFromFile(inputFile string) (map[string]*structs.Span, map[st
 
 	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
+	const maxCapacity = 512 * 1024
+	buf := make([]byte, maxCapacity)
+	scanner.Buffer(buf, maxCapacity)
 	traces := make(map[string][]*structs.SpanJson)
 	spans := make(map[string]*structs.Span)
 	spansJsonObj := make(map[string]*structs.SpanJson)
@@ -81,10 +84,13 @@ func PopulateStructsFromFile(inputFile string) (map[string]*structs.Span, map[st
 func EstablishChildReferences(spans map[string]*structs.Span, spansJsonObj map[string]*structs.SpanJson) {
 
 	for _, span := range spans {
+		if _, ok := spans[span.ParentID]; !ok {
+			// fmt.Printf("No parent span found in the file for span: %+v\n", span)
+			continue
+		}
 		if span.ParentID == "0000000000000000" || span.ParentID == "" {
 			continue
 		}
-
 		//check for parent span and populate the ids
 		ref := &structs.Reference{RefType: "CHILD_OF", TraceID: spans[span.ParentID].TraceID, SpanID: spans[span.ParentID].SpanID}
 		spansJsonObj[span.SpanID].References = append(spansJsonObj[span.SpanID].References, ref)
@@ -145,10 +151,7 @@ func WriteSpansToFile(spans []*structs.Span, outputFile string) {
 func FilterTracesWithSearchString(spans []*structs.Span, searchStr []string) []string {
 	traceIds := []string{}
 	for _, span := range spans {
-		str, err := json.Marshal(span)
-		if err != nil {
-			fmt.Println(err)
-		}
+		str, _ := json.Marshal(span)
 		flag := false
 		for _, substr := range searchStr {
 			if strings.Contains(string(str), substr) {
