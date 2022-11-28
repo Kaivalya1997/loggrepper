@@ -49,6 +49,6 @@ func init() {
 
 func convertToJson(inputFile string, outputFile string) {
 	spans, spansJsonObj, traces := common.PopulateStructsFromFile(inputFile)
-	common.PopulateChildSpans(spans, spansJsonObj)
+	common.EstablishChildReferences(spans, spansJsonObj)
 	common.PopulateJsonFile(traces, outputFile)
 }

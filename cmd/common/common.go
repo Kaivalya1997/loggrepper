@@ -78,7 +78,7 @@ func PopulateStructsFromFile(inputFile string) (map[string]*structs.Span, map[st
 	return spans, spansJsonObj, traces
 }
 
-func PopulateChildSpans(spans map[string]*structs.Span, spansJsonObj map[string]*structs.SpanJson) {
+func EstablishChildReferences(spans map[string]*structs.Span, spansJsonObj map[string]*structs.SpanJson) {
 
 	for _, span := range spans {
 		if span.ParentID == "0000000000000000" || span.ParentID == "" {
@@ -140,4 +140,26 @@ func WriteSpansToFile(spans []*structs.Span, outputFile string) {
 			fmt.Println(n, err)
 		}
 	}
+}
+
+func FilterTracesWithSearchString(spans []*structs.Span, searchStr []string) []string {
+	traceIds := []string{}
+	for _, span := range spans {
+		str, err := json.Marshal(span)
+		if err != nil {
+			fmt.Println(err)
+		}
+		flag := false
+		for _, substr := range searchStr {
+			if strings.Contains(string(str), substr) {
+				flag = true
+				break
+			}
+		}
+		if flag {
+			traceIds = append(traceIds, span.TraceID)
+		}
+
+	}
+	return traceIds
 }
